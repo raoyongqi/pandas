@@ -288,44 +288,51 @@ async def process_html_translation(html,filename):
 
                             section_p_tag.append(font_tag_1)
 
-        links = article_tag.find_all('a', href=True)
 
+
+    links = article_tag.find_all('a', href=True)
+
+    if links:
+        for link in links:
+            original_href = link['href']
+            
+            # 如果 href 是以 'https://pandas.pydata.org/docs/user_guide/' 开头，进行替换
+            if original_href.startswith('https://pandas.pydata.org/docs/user_guide/'):
+                # 提取文件名部分（去掉 URL 的基础部分）
+                file_name = original_href.replace('https://pandas.pydata.org/docs/user_guide/', '')
+                
+                # 修改 href 为本地路径
+                new_href = f'file:///C:/Users/r/Desktop/panda_ref/translate/{file_name}'
+                link['href'] = new_href
+    nav = soup.find(id='bd-docs-nav')
+
+    if nav:
+
+        links = nav.find_all('a', href=True)
+            
         if links:
             for link in links:
+                # 获取原始的 href
                 original_href = link['href']
                 
-                # 如果 href 是以 'https://pandas.pydata.org/docs/user_guide/' 开头，进行替换
                 if original_href.startswith('https://pandas.pydata.org/docs/user_guide/'):
-                    # 提取文件名部分（去掉 URL 的基础部分）
+
                     file_name = original_href.replace('https://pandas.pydata.org/docs/user_guide/', '')
                     
-                    # 修改 href 为本地路径
                     new_href = f'file:///C:/Users/r/Desktop/panda_ref/translate/{file_name}'
                     link['href'] = new_href
-        nav = soup.find(id='bd-docs-nav')
+    last_meta_tag = soup.find_all('meta')[-1] if soup.find_all('meta') else None
 
-        if nav:
+    # 如果找到了 <meta> 标签，去除它
+    if last_meta_tag:
+        last_meta_tag.decompose()
 
-            links = nav.find_all('a', href=True)
-                
-            if links:
-                for link in links:
-                    # 获取原始的 href
-                    original_href = link['href']
-                    
-                    if original_href.startswith('https://pandas.pydata.org/docs/user_guide/'):
+    modified_html = soup.prettify()
 
-                        file_name = original_href.replace('https://pandas.pydata.org/docs/user_guide/', '')
-                        
-                        new_href = f'file:///C:/Users/r/Desktop/panda_ref/translate/{file_name}'
-                        link['href'] = new_href
+    with open(f"translate/{filename}", "w", encoding="utf-8") as file:
+        file.write(modified_html)
 
-        modified_html = soup.prettify()
-
-        with open(f"translate/{filename}", "w", encoding="utf-8") as file:
-            file.write(modified_html)
-
-        print("Modified HTML has been written to all_html.html")
+    print("Modified HTML has been written to all_html.html")
 
 
 folder_path ="C:\\Users\\r\\Desktop\\panda_ref\\panda_ref"

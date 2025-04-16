@@ -4,71 +4,6 @@ import os
 import asyncio
 from bs4 import BeautifulSoup, Tag
 import json
-import math
-from lxml import etree
-
-
-def replace_translated_terms(translated_texts):
-    """
-    Replace specific terms in the translated texts with their English equivalents.
-    """
-    replacements = [
-        ("大熊猫", "pandas"),
-        ("熊猫", "pandas"),
-        ("数据框架", "DataFrame"),
-        ("数据框", "DataFrame"),
-        ("数据帧", "DataFrame"),
-        ("系列", "Series")
-    ]
-    
-    # 进行替换
-    for old_term, new_term in replacements:
-        translated_texts = [text.replace(old_term, new_term) for text in translated_texts]
-    
-    return translated_texts
-
-async def translate_in_batches(section_translate):
-    batch_size = 30  # 每批最多翻译30行
-    num_batches = math.ceil(len(section_translate) / batch_size)  # 计算总批次数
-    
-    all_translated_texts = []  # 用来存储所有翻译后的文本
-
-    # 遍历每个批次
-    for batch_num in range(num_batches):
-        
-        start_index = batch_num * batch_size
-        
-        end_index = min((batch_num + 1) * batch_size, len(section_translate))
-
-        batch_array = section_translate[start_index:end_index]
-        
-        last_removed_text = None
-
-        if batch_array  and batch_array[-1].strip() == '':
-            
-            last_removed_text = batch_array.pop()
-
-
-        batch_text = "\n".join(batch_array)
-        
-        translated_batch = await google_translate_long_text_async(batch_text, "zh-CN")
-        
-        translated_texts = translated_batch.split("\n")
-
-        translated_texts = replace_translated_terms(translated_texts)
-
-       
-        assert len(batch_array) == len(translated_texts), \
-            f"Mismatch in the number of texts before and after translation: {len(batch_array)} != {len(translated_texts)}" 
-        
-        if last_removed_text is not None:
-            translated_texts.append(last_removed_text)
-
-        all_translated_texts.extend(translated_texts)
-    
-    return all_translated_texts
-
-
 
 async def process_html_translation(html,filename):
 
@@ -188,7 +123,9 @@ async def process_html_translation(html,filename):
             
             translated_texts = translated_batch.split("\n")
 
-            translated_texts = replace_translated_terms(translated_texts)
+            translated_texts = [text.replace("大熊猫", "pandas") for text in translated_texts]
+
+            translated_texts = [text.replace("熊猫", "pandas") for text in translated_texts]
             
             assert len(to_translate) == len(translated_texts), \
                 f"Mismatch in the number of texts before and after translation: {len(section_translate)} != {len(translated_texts)}"
@@ -309,7 +246,6 @@ async def process_html_translation(html,filename):
                     for idx, text in enumerate(section_translate):
 
                         if not text.strip(): 
-                            
                             print(f"Skipping text at index {idx} because it's empty or only whitespace.")
                         
                         else:
@@ -318,12 +254,21 @@ async def process_html_translation(html,filename):
                     
                     if section_translate:
                         
-                        translated_texts = await translate_in_batches(section_translate)
 
+
+                        batch_text = "\n".join(section_translate)
+
+                        
+                        translated_batch = await google_translate_long_text_async(batch_text, "zh-CN")
+                        
+                        translated_texts = translated_batch.split("\n")
+
+                        translated_texts = [text.replace("大熊猫", "pandas") for text in translated_texts]
+
+                        translated_texts = [text.replace("熊猫", "pandas") for text in translated_texts]
 
                         assert len(section_translate) == len(translated_texts), \
-                            f"Mismatch in the number of texts before and after translation: {len(section_translate)} != {len(translated_texts)}" \
-                            f"Original  texts = {len(section_translate)}, " 
+                            f"Mismatch in the number of texts before and after translation: {len(section_translate)} != {len(translated_texts)}"
                         
 
                         text_index = 0
@@ -451,51 +396,28 @@ async def process_html_translation(html,filename):
 
     if last_meta_tag:
         last_meta_tag.decompose()
-    
-    navbar = soup.find_all('nav', class_='bd-header navbar navbar-expand-lg bd-navbar')
 
-    # 使用decompose删除它们
-    for element in navbar:
-        element.decompose()
 
-    html_str = str(soup)
-
-# 使用 lxml 来解析这个字符串
-    tree = etree.HTML(html_str)
-
-# 通过 lxml 美化 HTML
-    pretty_html = etree.tostring(tree, pretty_print=True, method="html", encoding="unicode")
-
-# 输出整理后的 HTML
     with open(f"translate/{filename}", "w", encoding="utf-8") as file:
-        file.write(pretty_html)
+        file.write(str(soup))
 
     print("Modified HTML has been written to all_html.html")
 
 
-folder_path ="C:\\Users\\r\\Desktop\\panda_ref\\panda_ref"
-
-async def process_html_files_in_folder(folder_path, output_folder="translate"):
-
-    for filename in os.listdir(folder_path):
-        
-        if filename.endswith(".html"):
-
-            file_path = os.path.join(folder_path, filename)
-            output_file_path = os.path.join(output_folder, filename) 
-            
-            if os.path.exists(output_file_path):  
-                print(f"文件 {filename} 已存在，跳过处理.")
-                continue
-            
-
-            with open(file_path, 'r', encoding='utf-8') as file:
-                html = file.read()
-            
-            print(f"正在处理文件: {filename}")
-            
-            await process_html_translation(html, filename)
+folder_path ="C:\\Users\\r\\Desktop\\panda_ref\\panda_ref\\10min.html"
 
 
-os.makedirs("C:\\Users\\r\\Desktop\\panda_ref\\translate",exist_ok=True)
+
+async def process_html_files_in_folder(file_path, output_folder="translate"):
+
+    
+
+    with open(file_path, 'r', encoding='utf-8') as file:
+        html = file.read()
+
+    print(f"正在处理文件: {file_path}")
+    file_name = os.path.basename(file_path)
+
+    await process_html_translation(html, file_name)
+
 asyncio.run(process_html_files_in_folder(folder_path))

@@ -4,6 +4,8 @@ from selenium.webdriver.common.keys import Keys
 import os
 import sys
 import re
+import time
+from selenium.webdriver.common.action_chains import ActionChains
 
 url = "https://pandas.pydata.org/docs/user_guide/index.html"
 
@@ -26,6 +28,29 @@ nav = driver.find_element(By.ID, 'bd-docs-nav')
 
 hrefs = [a.get_attribute('href') for a in nav.find_elements(By.TAG_NAME, 'a')]
 
+# selenium的对于保存页面的支持很差，放弃了
+
+
+# # 关闭浏览器前先对特定的hrefs使用浏览器原生方法进行保存
+# spec_hrefs =['https://pandas.pydata.org/docs/user_guide/10min.html']
+
+
+# driver.get(spec_hrefs[0])
+# match = re.search(r'/([^/]+)\.html$',spec_hrefs[0])
+# if match:
+#     last_part = match.group(1)
+#     print(f"最后一个斜杠后的部分: {last_part}")
+# else:
+#     print("未找到匹配的部分")
+
+
+# save_path = f"C:\\Users\\r\\Desktop\\panda_ref\\panda_ref\\{last_part}.html"
+# actions = ActionChains(driver)
+# actions.send_keys(Keys.CONTROL + 's')  # Windows 上 Ctrl+S，Mac 上可以使用 Keys.COMMAND + 's'
+# actions.perform()
+
+
+# time.sleep(500)
 driver.quit()
 
 os.makedirs("C:\\Users\\r\\Desktop\\panda_ref\\panda_ref",exist_ok=True)
@@ -54,6 +79,8 @@ single_file_path = "C:\\Users\\r\\Desktop\\zhuabao2\\single-file.exe"  # 指定 
 # else:
 #     print(f"✅ 成功处理 {url}")
 
+# hrefs = [x for x in hrefs if x not in spec_hrefs]
+
 total_hrefs = len(hrefs)
 
 for index, href in enumerate(hrefs):
@@ -65,7 +92,10 @@ for index, href in enumerate(hrefs):
         print("未找到匹配的部分")
     save_path = f"C:\\Users\\r\\Desktop\\panda_ref\\panda_ref\\{last_part}.html"
     
-
+    if os.path.exists(save_path):
+            print(f"文件 {save_path} 已存在，跳过保存。")
+            continue  # 如果文件存在，跳过保存过程
+        
     
     exit_code = os.system(f' {single_file_path} --browser-arg --user-data-dir="C:\\Users\\r\\AppData\\Local\\Chromium\\User Data\\Default" {href} {save_path}')
     
